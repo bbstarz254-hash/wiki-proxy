@@ -2,6 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const axios = require('axios');
 const NodeCache = require('node-cache');
+const https = require('https');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -14,6 +15,9 @@ const WIKIPEDIA_API_BASE_URL = 'https://en.wikipedia.org/w/api.php';
 
 // Initialize cache (TTL: 10 minutes, Check every 15 minutes)
 const cache = new NodeCache({ stdTTL: 600, checkperiod: 900 });
+
+// Reuse connections with keep-alive
+const agent = new https.Agent({ keepAlive: true });
 
 app.get('/api/wikipedia', async (req, res) => {
   try {
@@ -38,10 +42,11 @@ app.get('/api/wikipedia', async (req, res) => {
         'FanBoxAppProxy/1.0 (https://example.com/fanbox; your_email@example.com)',
     };
 
-    // Make the request to the Wikipedia API
+    // Make the request to the Wikipedia API with keep-alive
     const response = await axios.get(WIKIPEDIA_API_BASE_URL, {
       params,
       headers,
+      httpsAgent: agent, // ✅ keeps the connection alive
       timeout: 15000, // 15 seconds timeout
     });
 
