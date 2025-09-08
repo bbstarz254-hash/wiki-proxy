@@ -1,20 +1,36 @@
-// server.js
 const express = require('express');
 const cors = require('cors');
 const axios = require('axios');
+const NodeCache = require('node-cache');
 
 const app = express();
-const PORT = 5000; // You can change this port if needed
+const PORT = process.env.PORT || 5000;
 
-app.use(cors()); // Enable CORS for all routes
+// Enable CORS
+app.use(cors());
 
 // Wikipedia API base URL
 const WIKIPEDIA_API_BASE_URL = 'https://en.wikipedia.org/w/api.php';
+
+// Initialize cache (TTL: 10 minutes, Check every 15 minutes)
+const cache = new NodeCache({ stdTTL: 600, checkperiod: 900 });
 
 app.get('/api/wikipedia', async (req, res) => {
   try {
     // Get all query parameters from the incoming request
     const params = req.query;
+
+    // Generate a unique cache key based on the query string
+    const cacheKey = JSON.stringify(params);
+
+    // Check cache first
+    const cachedData = cache.get(cacheKey);
+    if (cachedData) {
+      console.log(`✅ Cache hit for: ${cacheKey}`);
+      return res.json(cachedData);
+    }
+
+    console.log(`⏳ Cache miss, fetching from Wikipedia: ${cacheKey}`);
 
     // Add a User-Agent header for Wikipedia API requests
     const headers = {
@@ -24,10 +40,13 @@ app.get('/api/wikipedia', async (req, res) => {
 
     // Make the request to the Wikipedia API
     const response = await axios.get(WIKIPEDIA_API_BASE_URL, {
-      params: params,
-      headers: headers,
+      params,
+      headers,
       timeout: 15000, // 15 seconds timeout
     });
+
+    // Store in cache before sending to client
+    cache.set(cacheKey, response.data);
 
     // Return the Wikipedia API's response directly
     res.json(response.data);
@@ -38,7 +57,6 @@ app.get('/api/wikipedia', async (req, res) => {
           .status(504)
           .json({ error: 'Request to Wikipedia API timed out.' });
       }
-      // Forward Wikipedia API's status code and message if available
       if (error.response) {
         return res.status(error.response.status).json({
           error: `Error fetching from Wikipedia API: ${error.response.statusText}`,
@@ -46,12 +64,18 @@ app.get('/api/wikipedia', async (req, res) => {
         });
       }
     }
-    // Handle other unexpected errors
     console.error('An unexpected error occurred:', error);
     res
       .status(500)
       .json({ error: `An unexpected error occurred: ${error.message}` });
   }
+});
+
+// Root route for sanity check
+app.get('/', (req, res) => {
+  res.send(
+    '✅ Wikipedia Proxy is running. Use /api/wikipedia with query params.',
+  );
 });
 
 app.listen(PORT, () => {
