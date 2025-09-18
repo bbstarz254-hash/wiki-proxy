@@ -135,7 +135,7 @@ ${rssText}
     if (geminiKeys.length === 0)
       return res.status(500).json({ error: 'No Gemini API keys provided' });
 
-    const models = ['gemini-2.0-flash', 'gemini-1.5-flash']; // fallback order
+    const models = ['gemini-1.5-flash', 'gemini-2.0-flash']; // fallback order
     let success = false;
 
     res.setHeader('Content-Type', 'text/plain; charset=utf-8');
