@@ -1,89 +1,223 @@
-const express = require('express');
-const cors = require('cors');
-const axios = require('axios');
-const NodeCache = require('node-cache');
-const https = require('https');
+import express from 'express';
+import bodyParser from 'body-parser';
+import cors from 'cors';
+import fetch from 'node-fetch';
+import Parser from 'rss-parser';
+import fs from 'fs';
+import axios from 'axios';
+import https from 'https';
+import dotenv from 'dotenv';
+
+dotenv.config(); // Load .env file
 
 const app = express();
-const PORT = process.env.PORT || 5000;
+const parser = new Parser();
 
-// Enable CORS
 app.use(cors());
+app.use(bodyParser.json());
 
-// Wikipedia API base URL
-const WIKIPEDIA_API_BASE_URL = 'https://en.wikipedia.org/w/api.php';
+// 🔹 Load RSS feeds from feeds.json
+const feedsConfig = JSON.parse(fs.readFileSync('./feeds.json', 'utf-8'));
+const feedUrls = feedsConfig.feeds || [];
 
-// Initialize cache (TTL: 10 minutes, Check every 15 minutes)
-const cache = new NodeCache({ stdTTL: 600, checkperiod: 900 });
-
-// Reuse connections with keep-alive
+// 🔹 Cache system (per type) with TTL
+const cache = new Map();
+const TTL = { wiki: 60 * 60 * 1000, rss: 10 * 60 * 1000 };
+const wikiNodeCache = new Map();
 const agent = new https.Agent({ keepAlive: true });
 
-app.get('/api/wikipedia', async (req, res) => {
+function setCache(key, data, type) {
+  cache.set(key, { data, expiry: Date.now() + (TTL[type] || 300000) });
+}
+
+function getCache(key) {
+  const cached = cache.get(key);
+  if (cached && cached.expiry > Date.now()) return cached.data;
+  cache.delete(key);
+  return null;
+}
+
+// 🔹 Fetch Wikipedia summary
+async function fetchWikipedia(query) {
+  const cacheKey = `wiki:${query}`;
+  const cached = getCache(cacheKey);
+  if (cached) return cached;
+
   try {
-    // Get all query parameters from the incoming request
-    const params = req.query;
-
-    // Generate a unique cache key based on the query string
-    const cacheKey = JSON.stringify(params);
-
-    // Check cache first
-    const cachedData = cache.get(cacheKey);
-    if (cachedData) {
-      console.log(`✅ Cache hit for: ${cacheKey}`);
-      return res.json(cachedData);
-    }
-
-    console.log(`⏳ Cache miss, fetching from Wikipedia: ${cacheKey}`);
-
-    // Add a User-Agent header for Wikipedia API requests
-    const headers = {
-      'User-Agent':
-        'FanBoxAppProxy/1.0 (https://example.com/fanbox; your_email@example.com)',
+    const params = {
+      action: 'query',
+      prop: 'extracts',
+      explaintext: 'true',
+      titles: query,
+      format: 'json',
     };
-
-    // Make the request to the Wikipedia API with keep-alive
-    const response = await axios.get(WIKIPEDIA_API_BASE_URL, {
+    const headers = { 'User-Agent': 'FanBoxAppProxy/1.0' };
+    const response = await axios.get('https://en.wikipedia.org/w/api.php', {
       params,
       headers,
-      httpsAgent: agent, // ✅ keeps the connection alive
-      timeout: 15000, // 15 seconds timeout
+      httpsAgent: agent,
+      timeout: 15000,
     });
+    const pages = response.data.query.pages;
+    const pageId = Object.keys(pages)[0];
+    const extract = pages[pageId].extract || 'No Wikipedia content found.';
+    const trimmed = extract.split('\n').slice(0, 5).join('\n');
+    setCache(cacheKey, trimmed, 'wiki');
+    return trimmed;
+  } catch (err) {
+    console.error('Wikipedia fetch error:', err.message);
+    return 'Error fetching Wikipedia.';
+  }
+}
 
-    // Store in cache before sending to client
-    cache.set(cacheKey, response.data);
+// 🔹 Fetch RSS feeds
+async function fetchRSS(feedUrl) {
+  const cacheKey = `rss:${feedUrl}`;
+  const cached = getCache(cacheKey);
+  if (cached) return cached;
 
-    // Return the Wikipedia API's response directly
-    res.json(response.data);
-  } catch (error) {
-    if (axios.isAxiosError(error)) {
-      if (error.code === 'ECONNABORTED') {
-        return res
-          .status(504)
-          .json({ error: 'Request to Wikipedia API timed out.' });
-      }
-      if (error.response) {
-        return res.status(error.response.status).json({
-          error: `Error fetching from Wikipedia API: ${error.response.statusText}`,
-          details: error.response.data,
-        });
+  try {
+    const feed = await parser.parseURL(feedUrl);
+    const headlines = feed.items
+      .slice(0, 5)
+      .map((item) => `- ${item.title} (${item.link})`)
+      .join('\n');
+    setCache(cacheKey, headlines, 'rss');
+    return headlines;
+  } catch (err) {
+    console.error(`RSS fetch error [${feedUrl}]:`, err.message);
+    return `Error fetching RSS from ${feedUrl}`;
+  }
+}
+
+// 🔹 Preload RSS feeds
+async function preloadFeeds() {
+  console.log('⏳ Preloading RSS feeds...');
+  await Promise.all(feedUrls.map((url) => fetchRSS(url)));
+  console.log('✅ Preloading done');
+}
+preloadFeeds();
+setInterval(preloadFeeds, 10 * 60 * 1000);
+
+// 🔹 Unified /generate endpoint with Gemini streaming & multiple API keys
+app.post('/generate', async (req, res) => {
+  try {
+    const { prompt } = req.body;
+    if (!prompt) return res.status(400).json({ error: 'Missing prompt' });
+
+    // Wikipedia + RSS background
+    const wikiText = await fetchWikipedia(prompt);
+    const rssResults = await Promise.all(feedUrls.map((url) => fetchRSS(url)));
+    const rssText = feedUrls
+      .map((url, i) => `Feed: ${url}\n${rssResults[i]}`)
+      .join('\n\n');
+
+    const finalPrompt = `
+You are a news & trivia assistant. The user asked: "${prompt}"
+
+🔹 Wikipedia background:
+${wikiText}
+
+🔹 Latest headlines from RSS feeds:
+${rssText}
+
+⚠️ Important: Use the info above. Summarize naturally. Include Wikipedia context.
+`;
+
+    console.log('Prompt sent to Gemini:\n', finalPrompt);
+
+    // 🔹 Multiple API keys (from .env)
+    const geminiKeys = [
+      process.env.GEMINI_API_KEY_1,
+      process.env.GEMINI_API_KEY_2,
+    ].filter(Boolean);
+
+    if (geminiKeys.length === 0)
+      return res.status(500).json({ error: 'No Gemini API keys provided' });
+
+    const models = ['gemini-2.0-flash', 'gemini-1.5-flash']; // fallback order
+    let success = false;
+
+    res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+
+    // Loop through keys and models
+    outer: for (const key of geminiKeys) {
+      for (const model of models) {
+        try {
+          const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`;
+          const response = await fetch(geminiUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              contents: [{ parts: [{ text: finalPrompt }] }],
+              generationConfig: {
+                responseMimeType: 'text/plain',
+                temperature: 0.3,
+                maxOutputTokens: 500,
+              },
+            }),
+          });
+
+          if (!response.ok)
+            throw new Error(
+              `Gemini ${model} failed with status ${response.status}`,
+            );
+
+          // Streaming reader
+          const reader = response.body.getReader();
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            res.write(Buffer.from(value).toString());
+          }
+
+          success = true;
+          break outer; // exit both loops if successful
+        } catch (err) {
+          console.warn(`❌ Model ${model} with key failed:`, err.message);
+        }
       }
     }
-    console.error('An unexpected error occurred:', error);
-    res
-      .status(500)
-      .json({ error: `An unexpected error occurred: ${error.message}` });
+
+    if (!success) res.write('Error: All Gemini models and API keys failed.');
+    res.end();
+  } catch (err) {
+    console.error('Proxy /generate error:', err.message);
+    res.status(500).json({ error: err.message });
   }
 });
 
-// Root route for sanity check
-app.get('/', (req, res) => {
-  res.send(
-    '✅ Wikipedia Proxy is running. Use /api/wikipedia with query params.',
-  );
+// 🔹 Wikipedia direct API endpoint
+app.get('/api/wikipedia', async (req, res) => {
+  try {
+    const params = req.query;
+    const cacheKey = JSON.stringify(params);
+    const cached = wikiNodeCache.get(cacheKey);
+    if (cached) return res.json(cached);
+
+    const headers = { 'User-Agent': 'FanBoxAppProxy/1.0' };
+    const response = await axios.get('https://en.wikipedia.org/w/api.php', {
+      params,
+      headers,
+      httpsAgent: agent,
+      timeout: 15000,
+    });
+
+    wikiNodeCache.set(cacheKey, response.data);
+    res.json(response.data);
+  } catch (err) {
+    console.error('Wikipedia direct fetch error:', err.message);
+    res.status(500).json({ error: err.message });
+  }
 });
 
-app.listen(PORT, () => {
-  console.log(`Node.js Express proxy server listening on port ${PORT}`);
-  console.log(`Access it at http://localhost:${PORT}/api/wikipedia`);
+// 🔹 Root
+app.get('/', (req, res) => {
+  res.send('✅ Unified AI Proxy running. Use /generate or /api/wikipedia');
 });
+
+// 🔹 Start server
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () =>
+  console.log(`✅ Unified AI Proxy listening on http://localhost:${PORT}`),
+);

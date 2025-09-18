@@ -1,0 +1,32 @@
+{
+  "rssFeeds": [
+    {
+      "name": "BBC",
+      "url": "http://feeds.bbci.co.uk/news/rss.xml"
+    },
+    {
+      "name": "CNN",
+      "url": "http://rss.cnn.com/rss/edition.rss"
+    },
+    {
+      "name": "NYTimes",
+      "url": "https://rss.nytimes.com/services/xml/rss/nyt/HomePage.xml"
+    },
+    {
+      "name": "Variety",
+      "url": "https://variety.com/feed/"
+    },
+    {
+      "name": "HollywoodReporter",
+      "url": "https://www.hollywoodreporter.com/feed/"
+    },
+    {
+      "name": "ETOnline",
+      "url": "https://www.etonline.com/news/rss"
+    },
+    {
+      "name": "People",
+      "url": "https://people.com/feed"
+    }
+  ]
+}
