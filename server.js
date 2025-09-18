@@ -1,12 +1,11 @@
 import express from 'express';
 import bodyParser from 'body-parser';
 import cors from 'cors';
-import fetch from 'node-fetch';
-import Parser from 'rss-parser';
-import fs from 'fs';
 import axios from 'axios';
 import https from 'https';
 import dotenv from 'dotenv';
+import Parser from 'rss-parser';
+import fs from 'fs';
 
 dotenv.config(); // Load .env file
 
@@ -37,7 +36,7 @@ function getCache(key) {
   return null;
 }
 
-// 🔹 Fetch Wikipedia summary
+// 🔹 Fetch full Wikipedia summary (long version)
 async function fetchWikipedia(query) {
   const cacheKey = `wiki:${query}`;
   const cached = getCache(cacheKey);
@@ -50,7 +49,9 @@ async function fetchWikipedia(query) {
       explaintext: 'true',
       titles: query,
       format: 'json',
+      exintro: false, // ✅ fetch full extract, not just intro
     };
+
     const headers = { 'User-Agent': 'FanBoxAppProxy/1.0' };
     const response = await axios.get('https://en.wikipedia.org/w/api.php', {
       params,
@@ -58,18 +59,19 @@ async function fetchWikipedia(query) {
       httpsAgent: agent,
       timeout: 15000,
     });
+
     const pages = response.data.query.pages;
     const pageId = Object.keys(pages)[0];
     const extract = pages[pageId].extract || 'No Wikipedia content found.';
-    const trimmed = extract.split('\n').slice(0, 5).join('\n');
-    setCache(cacheKey, trimmed, 'wiki');
-    return trimmed;
+
+    // ✅ Do NOT trim → return full text
+    setCache(cacheKey, extract, 'wiki');
+    return extract;
   } catch (err) {
     console.error('Wikipedia fetch error:', err.message);
     return 'Error fetching Wikipedia.';
   }
 }
-
 // 🔹 Fetch RSS feeds
 async function fetchRSS(feedUrl) {
   const cacheKey = `rss:${feedUrl}`;
@@ -99,88 +101,24 @@ async function preloadFeeds() {
 preloadFeeds();
 setInterval(preloadFeeds, 10 * 60 * 1000);
 
-// 🔹 Unified /generate endpoint with Gemini streaming & multiple API keys
+// 🔹 Modified /generate endpoint to return Wikipedia and RSS data
 app.post('/generate', async (req, res) => {
   try {
     const { prompt } = req.body;
     if (!prompt) return res.status(400).json({ error: 'Missing prompt' });
 
-    // Wikipedia + RSS background
+    // Fetch Wikipedia and RSS data
     const wikiText = await fetchWikipedia(prompt);
     const rssResults = await Promise.all(feedUrls.map((url) => fetchRSS(url)));
     const rssText = feedUrls
       .map((url, i) => `Feed: ${url}\n${rssResults[i]}`)
       .join('\n\n');
 
-    const finalPrompt = `
-You are a news & trivia assistant. The user asked: "${prompt}"
-
-🔹 Wikipedia background:
-${wikiText}
-
-🔹 Latest headlines from RSS feeds:
-${rssText}
-
-⚠️ Important: Use the info above. Summarize naturally. Include Wikipedia context.
-`;
-
-    console.log('Prompt sent to Gemini:\n', finalPrompt);
-
-    // 🔹 Multiple API keys (from .env)
-    const geminiKeys = [
-      process.env.GEMINI_API_KEY_1,
-      process.env.GEMINI_API_KEY_2,
-    ].filter(Boolean);
-
-    if (geminiKeys.length === 0)
-      return res.status(500).json({ error: 'No Gemini API keys provided' });
-
-    const models = ['gemini-1.5-flash', 'gemini-2.0-flash']; // fallback order
-    let success = false;
-
-    res.setHeader('Content-Type', 'text/plain; charset=utf-8');
-
-    // Loop through keys and models
-    outer: for (const key of geminiKeys) {
-      for (const model of models) {
-        try {
-          const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`;
-          const response = await fetch(geminiUrl, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              contents: [{ parts: [{ text: finalPrompt }] }],
-              generationConfig: {
-                responseMimeType: 'text/plain',
-                temperature: 0.3,
-                maxOutputTokens: 500,
-              },
-            }),
-          });
-
-          if (!response.ok)
-            throw new Error(
-              `Gemini ${model} failed with status ${response.status}`,
-            );
-
-          // Streaming reader
-          const reader = response.body.getReader();
-          while (true) {
-            const { done, value } = await reader.read();
-            if (done) break;
-            res.write(Buffer.from(value).toString());
-          }
-
-          success = true;
-          break outer; // exit both loops if successful
-        } catch (err) {
-          console.warn(`❌ Model ${model} with key failed:`, err.message);
-        }
-      }
-    }
-
-    if (!success) res.write('Error: All Gemini models and API keys failed.');
-    res.end();
+    // Return JSON with Wikipedia and RSS data
+    res.json({
+      wikipedia: wikiText,
+      rss: rssText,
+    });
   } catch (err) {
     console.error('Proxy /generate error:', err.message);
     res.status(500).json({ error: err.message });
