@@ -21,7 +21,7 @@ const feedUrls = feedsConfig.rssFeeds || [];
 
 // 🔹 Cache system with TTL
 const cache = new Map();
-const TTL = { wiki: 60 * 60 * 1000, rss: 10 * 60 * 1000 };
+const TTL = { wiki: 60 * 60 * 1000, rss: 10 * 60 * 1000, ddg: 15 * 60 * 1000 };
 const wikiNodeCache = new Map();
 const agent = new https.Agent({ keepAlive: true });
 
@@ -69,6 +69,35 @@ async function fetchWikipedia(query) {
   } catch (err) {
     console.error('Wikipedia fetch error:', err.message);
     return 'Error fetching Wikipedia.';
+  }
+}
+
+// 🔹 Fetch DuckDuckGo full search results (Unofficial Wrapper)
+async function fetchDuckDuckGo(query) {
+  const cacheKey = `ddg:${query}`;
+  const cached = getCache(cacheKey);
+  if (cached) return cached;
+
+  try {
+    const response = await axios.get('https://ddg-api.herokuapp.com/search', {
+      params: { query },
+      timeout: 15000,
+    });
+
+    const results = response.data?.results || [];
+    const formatted = results.slice(0, 10).map((r) => ({
+      title: r.title,
+      link: r.link,
+      snippet: r.snippet,
+    }));
+
+    setCache(cacheKey, formatted, 'ddg');
+    return formatted;
+  } catch (err) {
+    console.error('DuckDuckGo fetch error:', err.message);
+    return [
+      { title: 'Error fetching DuckDuckGo results', link: '', snippet: '' },
+    ];
   }
 }
 
@@ -140,10 +169,12 @@ app.post('/generate', async (req, res) => {
 
     const wikiText = await fetchWikipedia(prompt);
     const rssResults = await fetchRSSFeeds(feedUrls, prompt);
+    const ddgResults = await fetchDuckDuckGo(prompt);
 
     res.json({
       wikipedia: wikiText,
       rss: rssResults,
+      duckduckgo: ddgResults,
     });
   } catch (err) {
     console.error('Proxy /generate error:', err.message);
@@ -177,7 +208,7 @@ app.get('/api/wikipedia', async (req, res) => {
 
 // 🔹 Root
 app.get('/', (req, res) => {
-  res.send('✅ Unified AI Proxy running. Use /generate or /api/wikipedia');
+  res.send('✅ Unified AI Proxy running. Use /generate, /api/wikipedia');
 });
 
 // 🔹 Start server
