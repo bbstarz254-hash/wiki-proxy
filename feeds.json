@@ -1,32 +1,359 @@
 {
-  "rssFeeds": [
+  "rssfeeds": [
     {
-      "name": "BBC",
-      "url": "http://feeds.bbci.co.uk/news/rss.xml"
+      "name": "TMZ.com",
+      "url": "https://www.tmz.com/rss.xml",
+      "website": "https://www.tmz.com"
     },
     {
-      "name": "CNN",
-      "url": "http://rss.cnn.com/rss/edition.rss"
+      "name": "Hollywood Life",
+      "url": "https://hollywoodlife.com/feed",
+      "website": "https://hollywoodlife.com"
     },
     {
-      "name": "NYTimes",
-      "url": "https://rss.nytimes.com/services/xml/rss/nyt/HomePage.xml"
+      "name": "The Shade Room",
+      "url": "https://theshaderoom.com/feed",
+      "website": "https://theshaderoom.com"
+    },
+    {
+      "name": "Filmfare",
+      "url": "https://www.filmfare.com/feeds/feeds.xml",
+      "website": "https://filmfare.com"
+    },
+    {
+      "name": "Yo Gossip",
+      "url": "https://yogossip.com/rss.xml",
+      "website": "https://yogossip.com"
+    },
+    {
+      "name": "WeSmirch",
+      "url": "https://www.wesmirch.com/feed.xml",
+      "website": "https://wesmirch.com"
+    },
+    {
+      "name": "CelebMix",
+      "url": "https://celebmix.com/feed",
+      "website": "https://celebmix.com"
+    },
+    {
+      "name": "Female First",
+      "url": "https://www.femalefirst.co.uk/celebrities/rss.xml",
+      "website": "https://www.femalefirst.co.uk/celebrities"
+    },
+    {
+      "name": "Entertainment News",
+      "url": "https://w-newz.blogspot.com/feeds/posts/default",
+      "website": "https://w-newz.blogspot.com"
+    },
+    {
+      "name": "BCK Online",
+      "url": "https://bckonline.com/feed",
+      "website": "https://bckonline.com"
+    },
+    {
+      "name": "Oh No They Didn't!",
+      "url": "https://ohnotheydidnt.livejournal.com/data/rss",
+      "website": "https://ohnotheydidnt.livejournal.com"
+    },
+    {
+      "name": "Celebrity Insider",
+      "url": "https://celebrityinsider.org/feed",
+      "website": "https://celebrityinsider.org"
+    },
+    {
+      "name": "unCrazed",
+      "url": "https://uncrazed.com/feed",
+      "website": "https://uncrazed.com"
+    },
+    {
+      "name": "MissFilmy",
+      "url": "https://missfilmy.com/feed",
+      "website": "https://missfilmy.com"
+    },
+    {
+      "name": "Jimmy Star's World",
+      "url": "https://jimmystarsworld.com/feed",
+      "website": "https://jimmystarsworld.com"
+    },
+    {
+      "name": "Star Info World",
+      "url": "https://starsinfoworld.com/feed",
+      "website": "https://starsinfoworld.com"
+    },
+    {
+      "name": "Life & Style",
+      "url": "https://lifeandstylemag.com/?feed=posts-rss2",
+      "website": "https://lifeandstylemag.com"
+    },
+    {
+      "name": "In Touch Weekly",
+      "url": "https://intouchweekly.com/?feed=posts-rss2",
+      "website": "https://intouchweekly.com"
+    },
+    {
+      "name": "RSVP",
+      "url": "https://www.rsvplive.ie/?service=rss",
+      "website": "https://rsvplive.ie"
+    },
+    {
+      "name": "Go Fug Yourself",
+      "url": "https://www.gofugyourself.com/feed",
+      "website": "https://gofugyourself.com"
+    },
+    {
+      "name": "The Hollywood Gossip",
+      "url": "https://feeds.thehollywoodgossip.com/thehollywoodgossip",
+      "website": "https://thehollywoodgossip.com"
+    },
+    {
+      "name": "BuzzFeed Celebrity",
+      "url": "https://www.buzzfeed.com/celebrity.xml",
+      "website": "https://buzzfeed.com/celebrity"
+    },
+    {
+      "name": "AceShowbiz",
+      "url": "https://www.aceshowbiz.com/rsspage/news.xml",
+      "website": "https://aceshowbiz.com"
+    },
+    {
+      "name": "Closer Weekly",
+      "url": "https://closerweekly.com/feed",
+      "website": "https://closerweekly.com"
+    },
+    {
+      "name": "CelebrityKind",
+      "url": "https://celebritykind.com/feed",
+      "website": "https://celebritykind.com"
+    },
+    {
+      "name": "X17 Online",
+      "url": "https://www.x17online.com/rss.xml",
+      "website": "https://x17online.com"
+    },
+    {
+      "name": "Socialite Life",
+      "url": "https://socialitelife.com/feed",
+      "website": "https://socialitelife.com"
+    },
+    {
+      "name": "Deadline",
+      "url": "https://deadline.com/feed",
+      "website": "https://deadline.com"
+    },
+    {
+      "name": "Chaospin",
+      "url": "https://chaospin.com/feed",
+      "website": "https://chaospin.com"
+    },
+    {
+      "name": "Pinkvilla",
+      "url": "https://www.pinkvilla.com/rss.xml",
+      "website": "https://pinkvilla.com"
+    },
+    {
+      "name": "Us Weekly",
+      "url": "https://www.usmagazine.com/feed",
+      "website": "https://usmagazine.com"
+    },
+    {
+      "name": "All Celebrities",
+      "url": "https://allcelebrities.us/feed",
+      "website": "https://allcelebrities.us"
+    },
+    {
+      "name": "Yahoo Celebrity",
+      "url": "https://www.yahoo.com/celebrity/rss",
+      "website": "https://www.yahoo.com/entertainment/celebrity"
+    },
+    {
+      "name": "All About The Tea",
+      "url": "https://allaboutthetea.com/feed",
+      "website": "https://allaboutthetea.com"
+    },
+    {
+      "name": "VIP Magazine",
+      "url": "https://vipmagazine.ie/feed",
+      "website": "https://vipmagazine.ie"
+    },
+    {
+      "name": "America Suits",
+      "url": "https://americasuits.com/index.php?route=feed/rss",
+      "website": "https://americasuits.com/blog"
+    },
+    {
+      "name": "Soap Opera Digest",
+      "url": "https://soapoperadigest.com/feed/?q=rss",
+      "website": "https://soapoperadigest.com"
+    },
+    {
+      "name": "All About The Real Housewives",
+      "url": "https://allabouttrh.com/feed",
+      "website": "https://allabouttrh.com"
+    },
+    {
+      "name": "Honk Magazine",
+      "url": "https://honkmagazine.com/feed",
+      "website": "https://honkmagazine.com"
+    },
+    {
+      "name": "POPSUGAR Celebrity",
+      "url": "https://www.popsugar.com/celebrity/feed",
+      "website": "https://popsugar.com/celebrity"
+    },
+    {
+      "name": "9TheFIX",
+      "url": "https://celebrity.nine.com.au/rss",
+      "website": "https://celebrity.nine.com.au"
+    },
+    {
+      "name": "Sandra Rose",
+      "url": "https://sandrarose.com/feed",
+      "website": "https://sandrarose.com"
+    },
+    {
+      "name": "Bossip",
+      "url": "https://feeds.feedburner.com/bossiprss",
+      "website": "https://bossip.com"
+    },
+    {
+      "name": "Toofab",
+      "url": "https://feeds.toofab.com/atom",
+      "website": "https://toofab.com"
+    },
+    {
+      "name": "Cele|bitchy",
+      "url": "https://www.celebitchy.com/feed",
+      "website": "https://celebitchy.com"
+    },
+    {
+      "name": "Bollywood Dhamaka",
+      "url": "https://bollywooddhamaka.in/feed",
+      "website": "https://bollywooddhamaka.in"
+    },
+    {
+      "name": "The Jasmine Brand",
+      "url": "https://thejasminebrand.com/feed",
+      "website": "https://thejasminebrand.com"
+    },
+    {
+      "name": "ExtraTV",
+      "url": "https://feeds.extratv.com/atom",
+      "website": "https://extratv.com"
+    },
+    {
+      "name": "The Young Black & Fabulous",
+      "url": "https://theybf.com/feed",
+      "website": "https://theybf.com"
+    },
+    {
+      "name": "Perez Hilton",
+      "url": "https://perezhilton.com/feed",
+      "website": "https://perezhilton.com"
+    },
+    {
+      "name": "Baller Alert",
+      "url": "https://balleralert.com/feed",
+      "website": "https://balleralert.com"
+    },
+    {
+      "name": "Reality Blurb",
+      "url": "https://realityblurb.com/feed",
+      "website": "https://realityblurb.com"
+    },
+    {
+      "name": "Gossip Bucket",
+      "url": "https://gossipbucket.com/feed",
+      "website": "https://gossipbucket.com"
+    },
+    {
+      "name": "StyleCaster",
+      "url": "https://stylecaster.com/feed",
+      "website": "https://stylecaster.com/c/entertainment"
+    },
+    {
+      "name": "Just Jared",
+      "url": "https://www.justjared.com/feed",
+      "website": "https://justjared.com"
+    },
+    {
+      "name": "Bollywood Life",
+      "url": "https://www.bollywoodlife.com/feed",
+      "website": "https://bollywoodlife.com"
+    },
+    {
+      "name": "Celebrity Baby Scoop",
+      "url": "https://celebritybabyscoop.com/feed",
+      "website": "https://celebritybabyscoop.com"
+    },
+    {
+      "name": "Stars Deep",
+      "url": "https://starsdeep.com/feed",
+      "website": "https://starsdeep.com"
+    },
+    {
+      "name": "Page Six",
+      "url": "https://pagesix.com/feed",
+      "website": "https://pagesix.com"
+    },
+    {
+      "name": "Atlanta Black Star – Celebrity",
+      "url": "https://atlantablackstar.com/category/entertainment/celebrity/feed",
+      "website": "https://atlantablackstar.com/category/entertainment/celebrity"
+    },
+    {
+      "name": "Buzznet",
+      "url": "https://buzznet.com/feed",
+      "website": "https://buzznet.com"
+    },
+    {
+      "name": "Radar Online",
+      "url": "https://radaronline.com/rss",
+      "website": "https://radaronline.com"
+    },
+    {
+      "name": "OK! Magazine",
+      "url": "https://okmagazine.com/rss",
+      "website": "https://okmagazine.com"
+    },
+    {
+      "name": "Greg In Hollywood",
+      "url": "https://greginhollywood.com/feed/atom",
+      "website": "https://greginhollywood.com"
+    },
+    {
+      "name": "E! Online",
+      "url": "https://www.eonline.com/syndication/feeds/rssfeeds/topstories.xml",
+      "website": "https://eonline.com"
+    },
+    {
+      "name": "Hollywood Reporter",
+      "url": "https://www.hollywoodreporter.com/feed/",
+      "website": "https://hollywoodreporter.com"
     },
     {
       "name": "Variety",
-      "url": "https://variety.com/feed/"
+      "url": "https://variety.com/feed/",
+      "website": "https://variety.com"
     },
     {
-      "name": "HollywoodReporter",
-      "url": "https://www.hollywoodreporter.com/feed/"
+      "name": "Entertainment Tonight",
+      "url": "https://www.etonline.com/news/rss",
+      "website": "https://etonline.com"
     },
     {
-      "name": "ETOnline",
-      "url": "https://www.etonline.com/news/rss"
+      "name": "NY Times Entertainment",
+      "url": "https://rss.nytimes.com/services/xml/rss/nyt/Movies.xml",
+      "website": "https://nytimes.com/section/movies"
     },
     {
-      "name": "People",
-      "url": "https://people.com/feed"
+      "name": "CNN Entertainment",
+      "url": "http://rss.cnn.com/rss/edition_entertainment.rss",
+      "website": "https://cnn.com/entertainment"
+    },
+    {
+      "name": "BBC Entertainment",
+      "url": "http://feeds.bbci.co.uk/news/entertainment_and_arts/rss.xml",
+      "website": "https://bbc.com/news/entertainment_and_arts"
     }
   ]
 }
