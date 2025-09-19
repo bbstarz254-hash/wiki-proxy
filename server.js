@@ -4,10 +4,10 @@ import cors from 'cors';
 import axios from 'axios';
 import https from 'https';
 import dotenv from 'dotenv';
-import Parser from 'rss-parser';
 import fs from 'fs';
+import Parser from 'rss-parser';
 
-dotenv.config(); // Load .env file
+dotenv.config();
 
 const app = express();
 const parser = new Parser();
@@ -17,9 +17,9 @@ app.use(bodyParser.json());
 
 // 🔹 Load RSS feeds from feeds.json
 const feedsConfig = JSON.parse(fs.readFileSync('./feeds.json', 'utf-8'));
-const feedUrls = feedsConfig.feeds || [];
+const feedUrls = feedsConfig.rssFeeds || [];
 
-// 🔹 Cache system (per type) with TTL
+// 🔹 Cache system with TTL
 const cache = new Map();
 const TTL = { wiki: 60 * 60 * 1000, rss: 10 * 60 * 1000 };
 const wikiNodeCache = new Map();
@@ -36,7 +36,7 @@ function getCache(key) {
   return null;
 }
 
-// 🔹 Fetch full Wikipedia summary (long version)
+// 🔹 Fetch full Wikipedia summary
 async function fetchWikipedia(query) {
   const cacheKey = `wiki:${query}`;
   const cached = getCache(cacheKey);
@@ -49,7 +49,7 @@ async function fetchWikipedia(query) {
       explaintext: 'true',
       titles: query,
       format: 'json',
-      exintro: false, // ✅ fetch full extract, not just intro
+      exintro: false,
     };
 
     const headers = { 'User-Agent': 'FanBoxAppProxy/1.0' };
@@ -64,7 +64,6 @@ async function fetchWikipedia(query) {
     const pageId = Object.keys(pages)[0];
     const extract = pages[pageId].extract || 'No Wikipedia content found.';
 
-    // ✅ Do NOT trim → return full text
     setCache(cacheKey, extract, 'wiki');
     return extract;
   } catch (err) {
@@ -72,52 +71,79 @@ async function fetchWikipedia(query) {
     return 'Error fetching Wikipedia.';
   }
 }
-// 🔹 Fetch RSS feeds
-async function fetchRSS(feedUrl) {
-  const cacheKey = `rss:${feedUrl}`;
-  const cached = getCache(cacheKey);
-  if (cached) return cached;
 
-  try {
-    const feed = await parser.parseURL(feedUrl);
-    const headlines = feed.items
-      .slice(0, 5)
-      .map((item) => `- ${item.title} (${item.link})`)
-      .join('\n');
-    setCache(cacheKey, headlines, 'rss');
-    return headlines;
-  } catch (err) {
-    console.error(`RSS fetch error [${feedUrl}]:`, err.message);
-    return `Error fetching RSS from ${feedUrl}`;
+// 🔹 Fetch & parse RSS feeds with rss-parser, filter by celebrity name
+async function fetchRSSFeeds(feeds, prompt) {
+  const results = [];
+
+  for (const feed of feeds) {
+    const cacheKey = `rss:${feed.url}`;
+    const cached = getCache(cacheKey);
+
+    let parsedFeed;
+    try {
+      parsedFeed = cached || (await parser.parseURL(feed.url));
+
+      // 🔹 Filter items by prompt if provided
+      let articles = parsedFeed.items.filter(
+        (item) =>
+          (item.title &&
+            item.title.toLowerCase().includes(prompt.toLowerCase())) ||
+          (item.contentSnippet &&
+            item.contentSnippet.toLowerCase().includes(prompt.toLowerCase())),
+      );
+
+      if (articles.length === 0) {
+        articles = [{ title: `No matching articles found for "${prompt}"` }];
+      } else {
+        articles = articles.slice(0, 5).map((item) => ({
+          title: item.title || 'Untitled',
+          description:
+            item.contentSnippet || item.content || 'No description available.',
+          link: item.link || 'No link available.',
+        }));
+      }
+
+      const formatted = {
+        feed: feed.name || feed.url,
+        articles,
+      };
+
+      setCache(cacheKey, parsedFeed, 'rss'); // cache raw feed, not filtered
+      results.push(formatted);
+    } catch (error) {
+      console.error(`RSS fetch error (${feed.url}):`, error.message);
+      results.push({
+        feed: feed.name || feed.url,
+        error: `Error fetching feed`,
+      });
+    }
   }
+
+  return results;
 }
 
 // 🔹 Preload RSS feeds
 async function preloadFeeds() {
   console.log('⏳ Preloading RSS feeds...');
-  await Promise.all(feedUrls.map((url) => fetchRSS(url)));
+  await fetchRSSFeeds(feedUrls, ''); // preload with no filter
   console.log('✅ Preloading done');
 }
 preloadFeeds();
 setInterval(preloadFeeds, 10 * 60 * 1000);
 
-// 🔹 Modified /generate endpoint to return Wikipedia and RSS data
+// 🔹 /generate endpoint
 app.post('/generate', async (req, res) => {
   try {
     const { prompt } = req.body;
     if (!prompt) return res.status(400).json({ error: 'Missing prompt' });
 
-    // Fetch Wikipedia and RSS data
     const wikiText = await fetchWikipedia(prompt);
-    const rssResults = await Promise.all(feedUrls.map((url) => fetchRSS(url)));
-    const rssText = feedUrls
-      .map((url, i) => `Feed: ${url}\n${rssResults[i]}`)
-      .join('\n\n');
+    const rssResults = await fetchRSSFeeds(feedUrls, prompt);
 
-    // Return JSON with Wikipedia and RSS data
     res.json({
       wikipedia: wikiText,
-      rss: rssText,
+      rss: rssResults,
     });
   } catch (err) {
     console.error('Proxy /generate error:', err.message);
